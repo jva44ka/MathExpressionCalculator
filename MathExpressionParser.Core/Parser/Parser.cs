@@ -109,7 +109,7 @@ namespace MathExpressionParser.Core.Parser
         // Обрабатываем выражение в круглых скобках
         private void BracketsStep(out double result)
         {
-            if ((token == "("))
+            if (token == "(")
             {
                 GetToken();
                 AddOrSubStep(out result);
@@ -180,7 +180,7 @@ namespace MathExpressionParser.Core.Parser
         }
 
         // Метод возвращает значение true,
-        // если с -- разделитель.
+        // если с - разделитель.
         private bool IsDelim(char c)
         {
             if ("+-/*()".IndexOf(c) != -1)

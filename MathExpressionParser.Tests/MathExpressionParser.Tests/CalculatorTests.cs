@@ -1,4 +1,3 @@
-using MathExpressionParser.Core;
 using Microsoft.CodeAnalysis.CSharp.Scripting;
 using NUnit.Framework;
 

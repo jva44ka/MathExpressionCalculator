@@ -1,8 +1,9 @@
 ﻿using MathExpression.Core;
 using TParser = MathExpressionParser.Core.Parser.Parser;
 
-namespace MathExpressionParser.Core
+namespace MathExpressionParser
 {
+    // Внешний интерфейс для других проектов в решении
     public class Calculator : ICalculator
     {
         private TParser _parser = new TParser();
