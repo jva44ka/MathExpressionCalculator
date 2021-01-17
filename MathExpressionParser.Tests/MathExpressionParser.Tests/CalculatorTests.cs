@@ -9,7 +9,9 @@ namespace MathExpressionParser.Tests
         private static readonly string[] _setForPositiveTests =
         {
             "2 + 2 * 2",
-            "3 - 2 + (2 + 5)"
+            "3 - 2 + (2 + 5)",
+            "3 - 7 * (2 + 5)",
+            "3 * (2 + 5) / 3"
         };
 
         private readonly Calculator _calculator = new Calculator();
