@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace MathExpression.Core
+﻿namespace MathExpression.Interfaces.Core
 {
     public interface ICalculator
     {
