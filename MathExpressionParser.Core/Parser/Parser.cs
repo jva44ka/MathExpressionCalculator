@@ -21,6 +21,7 @@ namespace MathExpressionParser.Core.Parser
             for (int i = 0; i < vars.Length; i++)
                 vars[i] = 0.0;
         }
+
         // Входная точка анализатора.
         public double Evaluate(string expstr)
         {
@@ -43,7 +44,6 @@ namespace MathExpressionParser.Core.Parser
             }
             catch (ParserException exc)
             {
-                // При желании добавляем здесь обработку ошибок.
                 Console.WriteLine(exc);
                 return 0.0;
             }
@@ -58,7 +58,7 @@ namespace MathExpressionParser.Core.Parser
             if (tokType == LexTypes.VARIABLE)
             {
                 // Сохраняем старую лексему,
-                temptoken = String.Copy(token);
+                temptoken = token;
                 ttokType = tokType;
                 // Вычисляем индекс переменной,
                 varIdx = Char.ToUpper(token[0]) - 'A';
@@ -68,7 +68,7 @@ namespace MathExpressionParser.Core.Parser
                     PutBack();// Возвращаем текущую лексему в поток
                               //и восстанавливаем старую,
                               // поскольку отсутствует присвоение.
-                    token = String.Copy(temptoken);
+                    token = temptoken;
                     tokType = ttokType;
                 }
                 else
@@ -98,10 +98,10 @@ namespace MathExpressionParser.Core.Parser
                 switch (op)
                 {
                     case "-":
-                        result = result - partialResult;
+                        result -= partialResult;
                         break;
                     case "+":
-                        result = result + partialResult;
+                        result += partialResult;
                         break;
                 }
             }
@@ -112,32 +112,27 @@ namespace MathExpressionParser.Core.Parser
         {
             string op;
             double partialResult = 0.0;
-            EvalExp4(out result);
-            while ((op = token) == "*" || op == "/" || op == "%")
+            EvalExp5(out result);
+            while ((op = token) == "*" || op == "/")
             {
                 GetToken();
-                EvalExp4(out partialResult);
+                EvalExp5(out partialResult);
                 switch (op)
                 {
                     case "*":
-                        result = result * partialResult;
+                        result *= partialResult;
                         break;
                     case "/":
                         if (partialResult == 0.0)
                             throw new ParserException(Errors.DIVBYZERO.AsString());
-                        result = result / partialResult;
-                        break;
-                    case "%":
-                        if (partialResult == 0.0)
-                            throw new ParserException(Errors.DIVBYZERO.AsString());
-                        result = (int)result % (int)partialResult;
+                        result /= partialResult;
                         break;
                 }
             }
         }
 
         // выполняем возведение в степень
-        void EvalExp4(out double result)
+        /*void EvalExp4(out double result)
         {
             double partialResult, ex;
             int t;
@@ -155,7 +150,8 @@ namespace MathExpressionParser.Core.Parser
                 for (t = (int)partialResult - 1; t > 0; t--)
                     result = result * (double)ex;
             }
-        }
+        }*/
+
         // Выполненяем операцию унарного + или -.
         void EvalExp5(out double result)
         {
@@ -184,6 +180,7 @@ namespace MathExpressionParser.Core.Parser
             }
             else Atom(out result);
         }
+
         // Получаем значение числа или переменной.
         void Atom(out double result)
         {
@@ -210,6 +207,7 @@ namespace MathExpressionParser.Core.Parser
                     throw new ParserException(Errors.SYNTAX.AsString());
             }
         }
+
         // Возвращаем значение переменной.
         double FindVar(string vname)
         {
@@ -218,6 +216,7 @@ namespace MathExpressionParser.Core.Parser
 
             return vars[Char.ToUpper(vname[0]) - 'A'];
         }
+
         // Возвращаем лексему во входной поток.
         void PutBack()
         {
@@ -231,7 +230,7 @@ namespace MathExpressionParser.Core.Parser
             token = "";
             if (expIdx == exp.Length) return; // Конец выражения.
                                               // Опускаем пробел.
-            while (expIdx < exp.Length && Char.IsWhiteSpace(exp[expIdx])) ++expIdx;
+            while (expIdx < exp.Length && char.IsWhiteSpace(exp[expIdx])) ++expIdx;
             // Хвостовой пробел завершает выражение.
             if (expIdx == exp.Length) return;
             if (IsDelim(exp[expIdx]))
@@ -268,7 +267,7 @@ namespace MathExpressionParser.Core.Parser
         // если с -- разделитель.
         bool IsDelim(char c)
         {
-            if (("+-/*%^=()".IndexOf(c) != -1))
+            if (("+-/*=()".IndexOf(c) != -1))
                 return true;
             return false;
         }
