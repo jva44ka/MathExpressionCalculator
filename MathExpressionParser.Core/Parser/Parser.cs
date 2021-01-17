@@ -5,6 +5,9 @@ using System;
 
 namespace MathExpressionParser.Core.Parser
 {
+    /*
+     * Синтаксический анализатор методом рекурсивного спуска
+     */
     internal class Parser
     {
         string exp; // Ссылка на строку выражения,
@@ -12,18 +15,8 @@ namespace MathExpressionParser.Core.Parser
         string token; // Текущая лексема.
         LexTypes tokType; // Тип лексемы.
 
-        // Массив для переменных,
-        double[] vars = new double[26];
-
-        public Parser()
-        {
-            // Инициализируем переменные нулевыми значениями.
-            for (int i = 0; i < vars.Length; i++)
-                vars[i] = 0.0;
-        }
-
         // Входная точка анализатора.
-        public double Evaluate(string expstr)
+        internal double Evaluate(string expstr)
         {
             double result;
             exp = expstr;
@@ -31,15 +24,17 @@ namespace MathExpressionParser.Core.Parser
             try
             {
                 GetToken();
-                if (token == "")
-                    throw new ParserException(Errors.NOEXP.AsString()); // Выражение отсутствует,
 
-                EvalExp1(out result); // В этом варианте анализатора
-                                      // сначала вызывается
-                                      // метод EvalExpl().
-                if (token != "") // Последняя лексема должна
-                                 // быть нулевой.
+                // Выражение отсутствует
+                if (token == "")
+                    throw new ParserException(Errors.NOEXP.AsString());
+
+                AddOrSubStep(out result);
+
+                //Последняя лексема должна быть нулевой
+                if (token != "")
                     throw new ParserException(Errors.SYNTAX.AsString());
+
                 return result;
             }
             catch (ParserException exc)
@@ -49,52 +44,17 @@ namespace MathExpressionParser.Core.Parser
             }
         }
 
-        // Обрабатываем присвоение,
-        void EvalExp1(out double result)
-        {
-            int varIdx;
-            LexTypes ttokType;
-            string temptoken;
-            if (tokType == LexTypes.VARIABLE)
-            {
-                // Сохраняем старую лексему,
-                temptoken = token;
-                ttokType = tokType;
-                // Вычисляем индекс переменной,
-                varIdx = Char.ToUpper(token[0]) - 'A';
-                GetToken();
-                if (token != "=")
-                {
-                    PutBack();// Возвращаем текущую лексему в поток
-                              //и восстанавливаем старую,
-                              // поскольку отсутствует присвоение.
-                    token = temptoken;
-                    tokType = ttokType;
-                }
-                else
-                {
-                    GetToken();// Получаем следующую часть
-                               // выражения ехр.
-                    EvalExp2(out result);
-                    vars[varIdx] = result;
-                    return;
-                }
-            }
-
-            EvalExp2(out result);
-        }
-
         // Складываем или вычитаем два члена выражения.
-        void EvalExp2(out double result)
+        private void AddOrSubStep(out double result)
         {
             string op;
             double partialResult;
 
-            EvalExp3(out result);
+            MulOrDivStep(out result);
             while ((op = token) == "+" || op == "-")
             {
                 GetToken();
-                EvalExp3(out partialResult);
+                MulOrDivStep(out partialResult);
                 switch (op)
                 {
                     case "-":
@@ -108,15 +68,15 @@ namespace MathExpressionParser.Core.Parser
         }
 
         // Выполняем умножение или деление двух множителей.
-        void EvalExp3(out double result)
+        private void MulOrDivStep(out double result)
         {
             string op;
             double partialResult = 0.0;
-            EvalExp5(out result);
+            UnarPlusOrMinusStep(out result);
             while ((op = token) == "*" || op == "/")
             {
                 GetToken();
-                EvalExp5(out partialResult);
+                UnarPlusOrMinusStep(out partialResult);
                 switch (op)
                 {
                     case "*":
@@ -131,29 +91,8 @@ namespace MathExpressionParser.Core.Parser
             }
         }
 
-        // выполняем возведение в степень
-        /*void EvalExp4(out double result)
-        {
-            double partialResult, ex;
-            int t;
-            EvalExp5(out result);
-            if (token == "^")
-            {
-                GetToken();
-                EvalExp4(out partialResult);
-                ex = result;
-                if (partialResult == 0.0)
-                {
-                    result = 1.0;
-                    return;
-                }
-                for (t = (int)partialResult - 1; t > 0; t--)
-                    result = result * (double)ex;
-            }
-        }*/
-
         // Выполненяем операцию унарного + или -.
-        void EvalExp5(out double result)
+        private void UnarPlusOrMinusStep(out double result)
         {
             string op;
 
@@ -163,33 +102,33 @@ namespace MathExpressionParser.Core.Parser
                 op = token;
                 GetToken();
             }
-            EvalExp6(out result);
+            BracketsStep(out result);
             if (op == "-") result = -result;
         }
 
-        // обрабатываем выражение в круглых скобках
-        void EvalExp6(out double result)
+        // Обрабатываем выражение в круглых скобках
+        private void BracketsStep(out double result)
         {
             if ((token == "("))
             {
                 GetToken();
-                EvalExp2(out result);
+                AddOrSubStep(out result);
                 if (token != ")")
                     throw new ParserException(Errors.UNBALPARENS.AsString());
                 GetToken();
             }
-            else Atom(out result);
+            else NumberHandle(out result);
         }
 
-        // Получаем значение числа или переменной.
-        void Atom(out double result)
+        // Получаем значение числа.
+        private void NumberHandle(out double result)
         {
             switch (tokType)
             {
                 case LexTypes.NUMBER:
                     try
                     {
-                        result = Double.Parse(token);
+                        result = double.Parse(token);
                     }
                     catch (FormatException)
                     {
@@ -198,59 +137,36 @@ namespace MathExpressionParser.Core.Parser
                     }
                     GetToken();
                     return;
-                case LexTypes.VARIABLE:
-                    result = FindVar(token);
-                    GetToken();
-                    return;
                 default:
                     result = 0.0;
                     throw new ParserException(Errors.SYNTAX.AsString());
             }
         }
 
-        // Возвращаем значение переменной.
-        double FindVar(string vname)
-        {
-            if (!Char.IsLetter(vname[0]))
-                throw new ParserException(Errors.SYNTAX.AsString());
-
-            return vars[Char.ToUpper(vname[0]) - 'A'];
-        }
-
-        // Возвращаем лексему во входной поток.
-        void PutBack()
-        {
-            for (int i = 0; i < token.Length; i++) expIdx--;
-        }
-
-        // получем следующую лексему.
-        void GetToken()
+        // Получем следующую лексему.
+        private void GetToken()
         {
             tokType = LexTypes.NONE;
             token = "";
-            if (expIdx == exp.Length) return; // Конец выражения.
-                                              // Опускаем пробел.
-            while (expIdx < exp.Length && char.IsWhiteSpace(exp[expIdx])) ++expIdx;
+
+            // Конец выражения. Опускаем пробел
+            if (expIdx == exp.Length) 
+                return;
+
+            while (expIdx < exp.Length && char.IsWhiteSpace(exp[expIdx])) 
+                ++expIdx;
+
             // Хвостовой пробел завершает выражение.
-            if (expIdx == exp.Length) return;
+            if (expIdx == exp.Length) 
+                return;
+
             if (IsDelim(exp[expIdx]))
             {
                 token += exp[expIdx];
                 expIdx++;
                 tokType = LexTypes.DELIMITER;
             }
-            else if (Char.IsLetter(exp[expIdx]))
-            {
-                // Это переменная?
-                while (!IsDelim(exp[expIdx]))
-                {
-                    token += exp[expIdx];
-                    expIdx++;
-                    if (expIdx >= exp.Length) break;
-                }
-                tokType = LexTypes.VARIABLE;
-            }
-            else if (Char.IsDigit(exp[expIdx]))
+            else if (char.IsDigit(exp[expIdx]))
             {
                 // Это число?
                 while (!IsDelim(exp[expIdx]))
@@ -265,9 +181,9 @@ namespace MathExpressionParser.Core.Parser
 
         // Метод возвращает значение true,
         // если с -- разделитель.
-        bool IsDelim(char c)
+        private bool IsDelim(char c)
         {
-            if (("+-/*=()".IndexOf(c) != -1))
+            if ("+-/*()".IndexOf(c) != -1)
                 return true;
             return false;
         }

@@ -3,6 +3,6 @@
     // Типы лексем
     internal enum LexTypes
     {
-        NONE, DELIMITER, VARIABLE, NUMBER
+        NONE, DELIMITER, NUMBER
     }
 }
