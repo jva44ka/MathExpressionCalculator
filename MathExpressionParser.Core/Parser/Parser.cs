@@ -1,28 +1,16 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using MathExpressionParser.Core.Enums;
+using MathExpressionParser.Core.Exceptions;
+using MathExpressionParser.Core.Extensions;
+using System;
 
 namespace MathExpressionParser.Core.Parser
 {
-    //класс исключающий для ошибок для анализатора
-    class ParserException : ApplicationException
-    {
-        public ParserException(string str) : base(str) { }
-        public override string ToString()
-        { return Message; }
-    }
-
     internal class Parser
     {
-        //перчисляем типы лексем.
-        enum Types { NONE, DELIMITER, VARIABLE, NUMBER };
-        // Перечисляем типы ошибок.
-        enum Errors { SYNTAX, UNBALPARENS, NOEXP, DIVBYZERO };
-
         string exp; // Ссылка на строку выражения,
         int expIdx; // Текущий индекс в выражении,
         string token; // Текущая лексема.
-        Types tokType; // Тип лексемы.
+        LexTypes tokType; // Тип лексемы.
 
         // Массив для переменных,
         double[] vars = new double[26];
@@ -43,16 +31,14 @@ namespace MathExpressionParser.Core.Parser
             {
                 GetToken();
                 if (token == "")
-                {
-                    SyntaxErr(Errors.NOEXP); // Выражение отсутствует,
-                    return 0.0;
-                }
+                    throw new ParserException(Errors.NOEXP.AsString()); // Выражение отсутствует,
+
                 EvalExp1(out result); // В этом варианте анализатора
                                       // сначала вызывается
                                       // метод EvalExpl().
                 if (token != "") // Последняя лексема должна
                                  // быть нулевой.
-                    SyntaxErr(Errors.SYNTAX);
+                    throw new ParserException(Errors.SYNTAX.AsString());
                 return result;
             }
             catch (ParserException exc)
@@ -67,9 +53,9 @@ namespace MathExpressionParser.Core.Parser
         void EvalExp1(out double result)
         {
             int varIdx;
-            Types ttokType;
+            LexTypes ttokType;
             string temptoken;
-            if (tokType == Types.VARIABLE)
+            if (tokType == LexTypes.VARIABLE)
             {
                 // Сохраняем старую лексему,
                 temptoken = String.Copy(token);
@@ -138,12 +124,12 @@ namespace MathExpressionParser.Core.Parser
                         break;
                     case "/":
                         if (partialResult == 0.0)
-                            SyntaxErr(Errors.DIVBYZERO);
+                            throw new ParserException(Errors.DIVBYZERO.AsString());
                         result = result / partialResult;
                         break;
                     case "%":
                         if (partialResult == 0.0)
-                            SyntaxErr(Errors.DIVBYZERO);
+                            throw new ParserException(Errors.DIVBYZERO.AsString());
                         result = (int)result % (int)partialResult;
                         break;
                 }
@@ -176,7 +162,7 @@ namespace MathExpressionParser.Core.Parser
             string op;
 
             op = "";
-            if ((tokType == Types.DELIMITER) && token == "+" || token == "-")
+            if ((tokType == LexTypes.DELIMITER) && token == "+" || token == "-")
             {
                 op = token;
                 GetToken();
@@ -193,7 +179,7 @@ namespace MathExpressionParser.Core.Parser
                 GetToken();
                 EvalExp2(out result);
                 if (token != ")")
-                    SyntaxErr(Errors.UNBALPARENS);
+                    throw new ParserException(Errors.UNBALPARENS.AsString());
                 GetToken();
             }
             else Atom(out result);
@@ -203,7 +189,7 @@ namespace MathExpressionParser.Core.Parser
         {
             switch (tokType)
             {
-                case Types.NUMBER:
+                case LexTypes.NUMBER:
                     try
                     {
                         result = Double.Parse(token);
@@ -211,28 +197,25 @@ namespace MathExpressionParser.Core.Parser
                     catch (FormatException)
                     {
                         result = 0.0;
-                        SyntaxErr(Errors.SYNTAX);
+                        throw new ParserException(Errors.SYNTAX.AsString());
                     }
                     GetToken();
                     return;
-                case Types.VARIABLE:
+                case LexTypes.VARIABLE:
                     result = FindVar(token);
                     GetToken();
                     return;
                 default:
                     result = 0.0;
-                    SyntaxErr(Errors.SYNTAX);
-                    break;
+                    throw new ParserException(Errors.SYNTAX.AsString());
             }
         }
         // Возвращаем значение переменной.
         double FindVar(string vname)
         {
             if (!Char.IsLetter(vname[0]))
-            {
-                SyntaxErr(Errors.SYNTAX);
-                return 0.0;
-            }
+                throw new ParserException(Errors.SYNTAX.AsString());
+
             return vars[Char.ToUpper(vname[0]) - 'A'];
         }
         // Возвращаем лексему во входной поток.
@@ -240,20 +223,11 @@ namespace MathExpressionParser.Core.Parser
         {
             for (int i = 0; i < token.Length; i++) expIdx--;
         }
-        // Обрабатываем синтаксическую ошибку
-        void SyntaxErr(Errors error)
-        {
-            string[] err ={
-                         "Синтаксическая оошибка",
-                         "Дисбаланс скобок",
-                         "Выражение отсутствет",
-                         "Деление на нуль"};
-            throw new ParserException(err[(int)error]);
-        }
+
         // получем следующую лексему.
         void GetToken()
         {
-            tokType = Types.NONE;
+            tokType = LexTypes.NONE;
             token = "";
             if (expIdx == exp.Length) return; // Конец выражения.
                                               // Опускаем пробел.
@@ -264,7 +238,7 @@ namespace MathExpressionParser.Core.Parser
             {
                 token += exp[expIdx];
                 expIdx++;
-                tokType = Types.DELIMITER;
+                tokType = LexTypes.DELIMITER;
             }
             else if (Char.IsLetter(exp[expIdx]))
             {
@@ -275,7 +249,7 @@ namespace MathExpressionParser.Core.Parser
                     expIdx++;
                     if (expIdx >= exp.Length) break;
                 }
-                tokType = Types.VARIABLE;
+                tokType = LexTypes.VARIABLE;
             }
             else if (Char.IsDigit(exp[expIdx]))
             {
@@ -286,9 +260,10 @@ namespace MathExpressionParser.Core.Parser
                     expIdx++;
                     if (expIdx >= exp.Length) break;
                 }
-                tokType = Types.NUMBER;
+                tokType = LexTypes.NUMBER;
             }
         }
+
         // Метод возвращает значение true,
         // если с -- разделитель.
         bool IsDelim(char c)
