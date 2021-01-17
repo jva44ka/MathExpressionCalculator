@@ -7,7 +7,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MathExpressionParser.Consol
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MathExpressionParser.Core", "MathExpressionParser.Core\MathExpressionParser.Core.csproj", "{2C1274B4-C25F-45D8-8225-EE0913507644}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MathExpressionParser.Tests", "MathExpressionParser.Tests\MathExpressionParser.Tests\MathExpressionParser.Tests.csproj", "{DA130E94-EAE8-40AB-BFC1-36D6B5C69C89}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MathExpressionParser.Tests", "MathExpressionParser.Tests\MathExpressionParser.Tests.csproj", "{DA130E94-EAE8-40AB-BFC1-36D6B5C69C89}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
